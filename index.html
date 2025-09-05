@@ -426,13 +426,12 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData)
     });
-    // Beaucoup de déploiements Apps Script renvoient bien du JSON lisible
-    // Si tu obtiens une "opaque response", vérifie le déploiement (public) et réessaie.
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.ok !== true) {
         throw new Error("Échec d'enregistrement de la commande");
     }
 }
+
 
 
         // Fonction pour afficher le texte du stock
