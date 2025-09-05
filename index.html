@@ -358,6 +358,8 @@
             </form>
         </div>
     </div>
+    
+    const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzuk3ohTLBZgTMSPZzgKIbs2Req3u2F-k6fPr2pxMt2m7gcdzkP4V7CTS4H1JpUw0ga/exec"
 
     <script>
         // Base de données des produits (tu peux modifier ici)
@@ -418,6 +420,21 @@
             if (stock <= 5) return 'stock-low';
             return '';
         }
+        
+        async function sendToGoogleSheets(orderData) {
+    const res = await fetch(SHEETS_WEB_APP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData)
+    });
+    // Beaucoup de déploiements Apps Script renvoient bien du JSON lisible
+    // Si tu obtiens une "opaque response", vérifie le déploiement (public) et réessaie.
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok !== true) {
+        throw new Error("Échec d'enregistrement de la commande");
+    }
+}
+
 
         // Fonction pour afficher le texte du stock
         function getStockText(stock) {
@@ -501,35 +518,29 @@
 
         // Fonction pour soumettre la commande (à connecter avec Google Sheets)
         async function submitOrder(orderData) {
-            try {
-                // TODO: Implémenter l'API Google Sheets
-                // await sendToGoogleSheets(orderData);
-                
-                // Simulation d'un délai d'envoi
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Mettre à jour le stock localement (temporaire)
-                const product = products.find(p => p.id == orderData.productId);
-                if (product) {
-                    product.stock = Math.max(0, product.stock - parseInt(orderData.quantity));
-                    // Regénérer les cartes avec le nouveau stock
-                    document.getElementById('productsGrid').innerHTML = '';
-                    generateProductCards();
-                }
-                
-                // Afficher le message de succès
-                closeModal();
-                const successMsg = document.getElementById('successMessage');
-                successMsg.style.display = 'block';
-                setTimeout(() => {
-                    successMsg.style.display = 'none';
-                }, 5000);
-                
-            } catch (error) {
-                alert('Erreur lors de l\'envoi de la commande. Réessaye plus tard.');
-                console.error('Erreur:', error);
-            }
+    try {
+        // ENVOI RÉEL vers Google Sheets
+        await sendToGoogleSheets(orderData);
+
+        // Mettre à jour le stock localement (optionnel, purement visuel)
+        const product = products.find(p => p.id == orderData.productId);
+        if (product) {
+            product.stock = Math.max(0, product.stock - parseInt(orderData.quantity));
+            document.getElementById('productsGrid').innerHTML = '';
+            generateProductCards();
         }
+
+        closeModal();
+        const successMsg = document.getElementById('successMessage');
+        successMsg.style.display = 'block';
+        setTimeout(() => { successMsg.style.display = 'none'; }, 5000);
+
+    } catch (error) {
+        alert("Erreur lors de l'envoi de la commande. Réessaye plus tard.");
+        console.error('Erreur:', error);
+    }
+}
+
 
         // Initialiser la page
         document.addEventListener('DOMContentLoaded', function() {
