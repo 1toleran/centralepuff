@@ -1,549 +1,487 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centrale Puff - Mascottes 3D</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+import React, { useState, useEffect } from 'react';
+import { Calendar, ShoppingCart, Star, MessageSquare, Clock, ArrowLeft, Send } from 'lucide-react';
 
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-        }
+// ==============================================
+// CONFIGURATION & DONNÉES
+// ==============================================
 
-        .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-        }
+// Thème personnalisable - Modifiez ces couleurs pour changer l'apparence
+const THEME = {
+  primary: 'bg-gradient-to-r from-purple-500 to-pink-500',
+  secondary: 'bg-gradient-to-r from-blue-500 to-cyan-500',
+  accent: 'bg-gradient-to-r from-orange-500 to-red-500',
+  background: 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50',
+};
 
-        .header h1 {
-            text-align: center;
-            color: #4a5568;
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-        }
+// Configuration Lydia - Remplacez par votre numéro de téléphone
+const LYDIA_CONFIG = {
+  phoneNumber: '0612345678', // Votre numéro Lydia
+};
 
-        .header p {
-            text-align: center;
-            color: #718096;
-            font-size: 1.1rem;
-        }
+// Données initiales des produits (simulant un CSV)
+// En production, ces données seraient chargées depuis un fichier CSV
+const INITIAL_PRODUCTS = [
+  {
+    id: 1,
+    nom: 'T-shirt Logo Édition',
+    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
+    prix: 25,
+    stock: 8,
+    note: 4.5,
+    description: 'T-shirt premium avec logo exclusif'
+  },
+  {
+    id: 2,
+    nom: 'Mug Édition Limitée',
+    image: 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=400',
+    prix: 15,
+    stock: 0,
+    note: 4.9,
+    description: 'Mug en céramique avec design unique'
+  },
+  {
+    id: 3,
+    nom: 'Casquette Brodée',
+    image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=400',
+    prix: 20,
+    stock: 15,
+    note: 4.3,
+    description: 'Casquette ajustable avec broderie de qualité'
+  },
+  {
+    id: 4,
+    nom: 'Sac Tote Bag',
+    image: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=400',
+    prix: 18,
+    stock: 5,
+    note: 4.7,
+    description: 'Sac en toile réutilisable et écologique'
+  }
+];
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
+// Données initiales des avis (simulant un fichier JSON)
+const INITIAL_REVIEWS = {
+  1: [
+    { id: 1, pseudo: 'Sophie', note: 5, commentaire: 'Excellent produit, très bonne qualité !', date: '2025-10-01' },
+    { id: 2, pseudo: 'Marc', note: 4, commentaire: 'Conforme à la description, livraison rapide.', date: '2025-10-03' }
+  ],
+  2: [
+    { id: 3, pseudo: 'Julie', note: 5, commentaire: 'Magnifique mug, je recommande !', date: '2025-09-28' }
+  ],
+  3: [
+    { id: 4, pseudo: 'Pierre', note: 4, commentaire: 'Bonne qualité mais un peu cher.', date: '2025-10-05' }
+  ],
+  4: [
+    { id: 5, pseudo: 'Emma', note: 5, commentaire: 'Parfait pour mes courses, très résistant !', date: '2025-10-02' }
+  ]
+};
 
-        .products-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-bottom: 3rem;
-        }
+// ==============================================
+// COMPOSANTS UTILITAIRES
+// ==============================================
 
-        .product-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 1.5rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-        }
-
-        .product-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        }
-
-        .product-image {
-            width: 100%;
-            height: 200px;
-            background: linear-gradient(45deg, #f0f2f5, #e2e8f0);
-            border-radius: 15px;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .product-image::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        .product-name {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: #2d3748;
-            margin-bottom: 0.5rem;
-        }
-
-        .product-description {
-            color: #718096;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-        }
-
-        .product-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .stock-info {
-            background: linear-gradient(135deg, #48bb78, #38a169);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: bold;
-        }
-
-        .stock-low {
-            background: linear-gradient(135deg, #ed8936, #dd6b20);
-        }
-
-        .stock-out {
-            background: linear-gradient(135deg, #e53e3e, #c53030);
-        }
-
-        .price {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #4a5568;
-        }
-
-        .order-btn {
-            width: 100%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 25px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .order-btn:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-        }
-
-        .order-btn:disabled {
-            background: #a0aec0;
-            cursor: not-allowed;
-        }
-
-        .order-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transition: left 0.5s;
-        }
-
-        .order-btn:hover:not(:disabled)::before {
-            left: 100%;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
-        }
-
-        .modal-content {
-            background: white;
-            margin: 5% auto;
-            padding: 2rem;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-50px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .modal h2 {
-            color: #2d3748;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #4a5568;
-            font-weight: bold;
-        }
-
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 0.8rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-            margin-top: 1.5rem;
-        }
-
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #4a5568;
-        }
-
-        .btn:hover {
-            transform: scale(1.05);
-        }
-
-        .success-message {
-            background: #c6f6d5;
-            color: #22543d;
-            padding: 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            text-align: center;
-            display: none;
-        }
-
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .products-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-            
-            .container {
-                padding: 0 1rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>🎯 Centrale Puff</h1>
-        <p>Collection exclusive de mascottes imprimées en 3D - Centrale Lille</p>
+// Composant pour afficher les étoiles de notation
+const StarRating = ({ rating, size = 'w-4 h-4' }) => {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className={`${size} ${
+            star <= Math.round(rating)
+              ? 'fill-yellow-400 text-yellow-400'
+              : 'text-gray-300'
+          }`}
+        />
+      ))}
+      <span className="ml-1 text-sm font-semibold text-gray-700">{rating.toFixed(1)}</span>
     </div>
+  );
+};
 
-    <div class="container">
-        <div class="success-message" id="successMessage">
-            ✅ Commande envoyée avec succès ! Tu recevras une confirmation bientôt.
-        </div>
+// ==============================================
+// COMPOSANT PRINCIPAL
+// ==============================================
 
-        <div class="products-grid" id="productsGrid">
-            <!-- Les produits seront générés par JavaScript -->
-        </div>
-    </div>
+export default function BoutiqueApp() {
+  // États de l'application
+  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [reviews, setReviews] = useState(INITIAL_REVIEWS);
+  const [currentPage, setCurrentPage] = useState('home'); // home, booking, reviews
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [newReview, setNewReview] = useState({ pseudo: '', note: 5, commentaire: '' });
 
-    <!-- Modal de commande -->
-    <div id="orderModal" class="modal">
-        <div class="modal-content">
-            <h2>📝 Passer une commande</h2>
-            <form id="orderForm">
-                <input type="hidden" id="productId" name="productId">
-                <input type="hidden" id="productName" name="productName">
-                
-                <div class="form-group">
-                    <label>Produit sélectionné :</label>
-                    <input type="text" id="selectedProduct" readonly>
-                </div>
+  // ==============================================
+  // GESTIONNAIRES D'ÉVÉNEMENTS
+  // ==============================================
 
-                <div class="form-group">
-                    <label for="studentName">Nom et Prénom :</label>
-                    <input type="text" id="studentName" name="studentName" required>
-                </div>
+  // Gérer l'achat d'un produit
+  const handleBuyClick = (product) => {
+    if (product.stock > 0) {
+      setSelectedProduct(product);
+      setCurrentPage('booking');
+    }
+  };
 
-                <div class="form-group">
-                    <label for="email">Email étudiant :</label>
-                    <input type="email" id="email" name="email" required>
-                </div>
+  // Gérer la consultation des avis
+  const handleReviewsClick = (product) => {
+    setSelectedProduct(product);
+    setCurrentPage('reviews');
+  };
 
-                <div class="form-group">
-                    <label for="phone">Téléphone :</label>
-                    <input type="tel" id="phone" name="phone">
-                </div>
+  // Générer le lien de paiement Lydia
+  const generateLydiaLink = () => {
+    if (!selectedProduct || !selectedDate || !selectedTime) return '#';
+    const amount = selectedProduct.prix;
+    return `https://lydia-app.com/p/${LYDIA_CONFIG.phoneNumber}/?amount=${amount}`;
+  };
 
-                <div class="form-group">
-                    <label for="quantity">Quantité :</label>
-                    <input type="number" id="quantity" name="quantity" min="1" max="10" value="1" required>
-                </div>
+  // Soumettre un nouvel avis
+  const handleSubmitReview = () => {
+    if (!newReview.pseudo || !newReview.commentaire) {
+      alert('Veuillez remplir tous les champs');
+      return;
+    }
 
-                <div class="form-group">
-                    <label for="notes">Notes supplémentaires :</label>
-                    <textarea id="notes" name="notes" rows="3" placeholder="Couleur préférée, instructions spéciales..."></textarea>
-                </div>
+    const review = {
+      id: Date.now(),
+      pseudo: newReview.pseudo,
+      note: newReview.note,
+      commentaire: newReview.commentaire,
+      date: new Date().toISOString().split('T')[0]
+    };
 
-                <div class="modal-buttons">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Confirmer la commande</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    setReviews(prev => ({
+      ...prev,
+      [selectedProduct.id]: [...(prev[selectedProduct.id] || []), review]
+    }));
+
+    // Mettre à jour la note moyenne du produit
+    const productReviews = [...(reviews[selectedProduct.id] || []), review];
+    const avgRating = productReviews.reduce((acc, r) => acc + r.note, 0) / productReviews.length;
     
+    setProducts(prev => prev.map(p => 
+      p.id === selectedProduct.id ? { ...p, note: avgRating } : p
+    ));
 
-    <script>
-    const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzuk3ohTLBZgTMSPZzgKIbs2Req3u2F-k6fPr2pxMt2m7gcdzkP4V7CTS4H1JpUw0ga/exec"
-        const products = [
-            {
-                id: 1,
-                name: "Puff Dragon 🐉",
-                description: "Petit dragon mignon avec des ailes articulées",
-                price: "8€",
-                stock: 15,
-                emoji: "🐉"
-            },
-            {
-                id: 2,
-                name: "Puff Chat 🐱",
-                description: "Mascotte chat kawaii avec queue mobile",
-                price: "6€",
-                stock: 23,
-                emoji: "🐱"
-            },
-            {
-                id: 3,
-                name: "Puff Robot 🤖",
-                description: "Mini robot avec LED intégrée",
-                price: "12€",
-                stock: 8,
-                emoji: "🤖"
-            },
-            {
-                id: 4,
-                name: "Puff Licorne 🦄",
-                description: "Licorne arc-en-ciel brillante",
-                price: "10€",
-                stock: 5,
-                emoji: "🦄"
-            },
-            {
-                id: 5,
-                name: "Puff Hibou 🦉",
-                description: "Hibou sage avec yeux rotatifs",
-                price: "7€",
-                stock: 18,
-                emoji: "🦉"
-            },
-            {
-                id: 6,
-                name: "Puff Alien 👽",
-                description: "Créature extraterrestre phosphorescente",
-                price: "9€",
-                stock: 0,
-                emoji: "👽"
-            }
-        ];
+    setNewReview({ pseudo: '', note: 5, commentaire: '' });
+    alert('Merci pour votre avis !');
+  };
 
-        // Fonction pour déterminer la classe CSS du stock
-        function getStockClass(stock) {
-            if (stock === 0) return 'stock-out';
-            if (stock <= 5) return 'stock-low';
-            return '';
-        }
-        
-        async function sendToGoogleSheets(orderData) {
-    const res = await fetch(SHEETS_WEB_APP_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderData)
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.ok !== true) {
-        throw new Error("Échec d'enregistrement de la commande");
-    }
-}
+  // Retour à l'accueil
+  const goHome = () => {
+    setCurrentPage('home');
+    setSelectedProduct(null);
+    setSelectedDate('');
+    setSelectedTime('');
+  };
 
+  // Calculer le nombre d'avis pour un produit
+  const getReviewCount = (productId) => {
+    return (reviews[productId] || []).length;
+  };
 
+  // ==============================================
+  // RENDU DES PAGES
+  // ==============================================
 
-        // Fonction pour afficher le texte du stock
-        function getStockText(stock) {
-            if (stock === 0) return 'Rupture de stock';
-            if (stock <= 5) return `Plus que ${stock} !`;
-            return `${stock} disponibles`;
-        }
+  // Page d'accueil avec la grille de produits
+  if (currentPage === 'home') {
+    return (
+      <div className={`min-h-screen ${THEME.background} p-8`}>
+        {/* En-tête */}
+        <div className="max-w-7xl mx-auto mb-12 text-center">
+          <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4">
+            Boutique Moderne
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Découvrez notre collection exclusive de produits de qualité
+          </p>
+        </div>
 
-        // Générer les cartes produits
-        function generateProductCards() {
-            const grid = document.getElementById('productsGrid');
-            
-            products.forEach(product => {
-                const card = document.createElement('div');
-                card.className = 'product-card';
-                
-                card.innerHTML = `
-                    <div class="product-image">
-                        <span style="font-size: 4rem;">${product.emoji}</span>
+        {/* Grille de produits */}
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {products.map((product) => {
+            const isOutOfStock = product.stock === 0;
+            const reviewCount = getReviewCount(product.id);
+
+            return (
+              <div
+                key={product.id}
+                className={`bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
+                  isOutOfStock ? 'opacity-60 grayscale' : ''
+                }`}
+              >
+                {/* Image du produit */}
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={product.image}
+                    alt={product.nom}
+                    className="w-full h-full object-cover"
+                  />
+                  {isOutOfStock && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                      <span className="text-white text-xl font-bold">RUPTURE DE STOCK</span>
                     </div>
-                    <h3 class="product-name">${product.name}</h3>
-                    <p class="product-description">${product.description}</p>
-                    <div class="product-info">
-                        <span class="stock-info ${getStockClass(product.stock)}">
-                            ${getStockText(product.stock)}
-                        </span>
-                        <span class="price">${product.price}</span>
-                    </div>
-                    <button class="order-btn" ${product.stock === 0 ? 'disabled' : ''} 
-                            onclick="openOrderModal(${product.id})">
-                        ${product.stock === 0 ? 'Indisponible' : 'Commander 🛒'}
+                  )}
+                </div>
+
+                {/* Informations du produit */}
+                <div className="p-5">
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">{product.nom}</h3>
+                  <p className="text-gray-600 text-sm mb-3">{product.description}</p>
+                  
+                  {/* Note et avis */}
+                  <div className="flex items-center justify-between mb-3">
+                    <StarRating rating={product.note} />
+                    <span className="text-sm text-gray-500">({reviewCount} avis)</span>
+                  </div>
+
+                  {/* Prix et stock */}
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
+                      {product.prix}€
+                    </span>
+                    <span className={`text-sm font-semibold ${
+                      product.stock > 5 ? 'text-green-600' : 'text-orange-600'
+                    }`}>
+                      {isOutOfStock ? 'Stock épuisé' : `${product.stock} restants`}
+                    </span>
+                  </div>
+
+                  {/* Boutons d'action */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleBuyClick(product)}
+                      disabled={isOutOfStock}
+                      className={`flex-1 py-3 px-4 rounded-xl font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 ${
+                        isOutOfStock
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-md hover:shadow-lg'
+                      }`}
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                      Acheter
                     </button>
-                `;
-                
-                grid.appendChild(card);
-            });
-        }
+                    <button
+                      onClick={() => handleReviewsClick(product)}
+                      className="py-3 px-4 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 rounded-xl font-semibold text-white transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
-        // Ouvrir le modal de commande
-        function openOrderModal(productId) {
-            const product = products.find(p => p.id === productId);
-            if (!product || product.stock === 0) return;
+  // Page de réservation
+  if (currentPage === 'booking') {
+    return (
+      <div className={`min-h-screen ${THEME.background} p-8`}>
+        <div className="max-w-2xl mx-auto">
+          {/* Bouton retour */}
+          <button
+            onClick={goHome}
+            className="mb-6 flex items-center gap-2 text-purple-600 hover:text-purple-700 font-semibold"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Retour à la boutique
+          </button>
 
-            document.getElementById('productId').value = productId;
-            document.getElementById('productName').value = product.name;
-            document.getElementById('selectedProduct').value = `${product.name} - ${product.price}`;
-            document.getElementById('quantity').max = Math.min(product.stock, 10);
-            
-            document.getElementById('orderModal').style.display = 'block';
-        }
+          {/* Carte de réservation */}
+          <div className="bg-white rounded-2xl shadow-2xl p-8">
+            <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-6">
+              Réserver votre rendez-vous
+            </h2>
 
-        // Fermer le modal
-        function closeModal() {
-            document.getElementById('orderModal').style.display = 'none';
-            document.getElementById('orderForm').reset();
-        }
+            {/* Informations du produit */}
+            <div className="flex items-center gap-4 mb-8 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
+              <img
+                src={selectedProduct.image}
+                alt={selectedProduct.nom}
+                className="w-20 h-20 rounded-lg object-cover"
+              />
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">{selectedProduct.nom}</h3>
+                <p className="text-2xl font-bold text-purple-600">{selectedProduct.prix}€</p>
+              </div>
+            </div>
 
-        // Fermer le modal en cliquant à l'extérieur
-        window.onclick = function(event) {
-            const modal = document.getElementById('orderModal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
+            {/* Sélection de la date */}
+            <div className="mb-6">
+              <label className="flex items-center gap-2 text-gray-700 font-semibold mb-3">
+                <Calendar className="w-5 h-5 text-purple-600" />
+                Choisissez une date
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full p-4 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:outline-none transition-colors"
+              />
+            </div>
 
-        // Traiter la soumission du formulaire
-        document.getElementById('orderForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const orderData = Object.fromEntries(formData);
-            orderData.timestamp = new Date().toISOString();
-            orderData.status = 'En attente';
-            
-            // Ici, tu devras implémenter l'envoi vers Google Sheets
-            console.log('Données de commande:', orderData);
-            
-            // Simulation d'envoi réussi
-            submitOrder(orderData);
-        });
+            {/* Sélection de l'heure */}
+            <div className="mb-8">
+              <label className="flex items-center gap-2 text-gray-700 font-semibold mb-3">
+                <Clock className="w-5 h-5 text-purple-600" />
+                Choisissez un horaire
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'].map((time) => (
+                  <button
+                    key={time}
+                    onClick={() => setSelectedTime(time)}
+                    className={`p-3 rounded-xl font-semibold transition-all duration-300 ${
+                      selectedTime === time
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        // Fonction pour soumettre la commande (à connecter avec Google Sheets)
-        async function submitOrder(orderData) {
-    try {
-        // ENVOI RÉEL vers Google Sheets
-        await sendToGoogleSheets(orderData);
+            {/* Bouton de paiement Lydia */}
+            {selectedDate && selectedTime ? (
+              <a
+                href={generateLydiaLink()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold text-center rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              >
+                💳 Payer {selectedProduct.prix}€ avec Lydia
+              </a>
+            ) : (
+              <div className="text-center p-4 bg-yellow-50 rounded-xl text-yellow-800">
+                ⚠️ Veuillez sélectionner une date et un horaire
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-        // Mettre à jour le stock localement (optionnel, purement visuel)
-        const product = products.find(p => p.id == orderData.productId);
-        if (product) {
-            product.stock = Math.max(0, product.stock - parseInt(orderData.quantity));
-            document.getElementById('productsGrid').innerHTML = '';
-            generateProductCards();
-        }
+  // Page des avis
+  if (currentPage === 'reviews') {
+    const productReviews = reviews[selectedProduct.id] || [];
 
-        closeModal();
-        const successMsg = document.getElementById('successMessage');
-        successMsg.style.display = 'block';
-        setTimeout(() => { successMsg.style.display = 'none'; }, 5000);
+    return (
+      <div className={`min-h-screen ${THEME.background} p-8`}>
+        <div className="max-w-4xl mx-auto">
+          {/* Bouton retour */}
+          <button
+            onClick={goHome}
+            className="mb-6 flex items-center gap-2 text-purple-600 hover:text-purple-700 font-semibold"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Retour à la boutique
+          </button>
 
-    } catch (error) {
-        alert("Erreur lors de l'envoi de la commande. Réessaye plus tard.");
-        console.error('Erreur:', error);
-    }
+          {/* En-tête */}
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
+            <div className="flex items-center gap-4 mb-4">
+              <img
+                src={selectedProduct.image}
+                alt={selectedProduct.nom}
+                className="w-24 h-24 rounded-lg object-cover"
+              />
+              <div>
+                <h2 className="text-3xl font-bold text-gray-800">{selectedProduct.nom}</h2>
+                <StarRating rating={selectedProduct.note} size="w-6 h-6" />
+                <p className="text-gray-600 mt-2">{productReviews.length} avis</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Formulaire d'ajout d'avis */}
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
+            <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4">
+              Donnez votre avis
+            </h3>
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Votre pseudo"
+                value={newReview.pseudo}
+                onChange={(e) => setNewReview({ ...newReview, pseudo: e.target.value })}
+                className="w-full p-4 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:outline-none transition-colors"
+              />
+              
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Votre note</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setNewReview({ ...newReview, note: star })}
+                      className="transition-transform hover:scale-110"
+                    >
+                      <Star
+                        className={`w-8 h-8 ${
+                          star <= newReview.note
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                placeholder="Votre commentaire..."
+                value={newReview.commentaire}
+                onChange={(e) => setNewReview({ ...newReview, commentaire: e.target.value })}
+                rows="4"
+                className="w-full p-4 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:outline-none transition-colors resize-none"
+              />
+
+              <button
+                onClick={handleSubmitReview}
+                className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                <Send className="w-5 h-5" />
+                Publier mon avis
+              </button>
+            </div>
+          </div>
+
+          {/* Liste des avis */}
+          <div className="space-y-4">
+            <h3 className="text-2xl font-bold text-gray-800">Tous les avis</h3>
+            {productReviews.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-lg p-8 text-center text-gray-500">
+                Aucun avis pour le moment. Soyez le premier à donner votre avis !
+              </div>
+            ) : (
+              productReviews.map((review) => (
+                <div key={review.id} className="bg-white rounded-2xl shadow-lg p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-bold text-gray-800 text-lg">{review.pseudo}</h4>
+                      <StarRating rating={review.note} />
+                    </div>
+                    <span className="text-sm text-gray-500">{review.date}</span>
+                  </div>
+                  <p className="text-gray-700 leading-relaxed">{review.commentaire}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 }
-
-
-        // Initialiser la page
-        document.addEventListener('DOMContentLoaded', function() {
-            generateProductCards();
-        });
-    </script>
-</body>
-</html>
